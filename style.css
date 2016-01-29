@@ -1,0 +1,29 @@
+.sawatch-admin-pane {
+	width: 600px;
+}
+.sawatch-admin-pane .main-menu{
+	width:400px;
+	height:35px;
+	position:relative;
+	display: block;
+	margin-left: auto;
+	margin-right: auto;
+	text-align: center;
+}
+
+.sawatch-admin-pane .main-menu ul{
+	display: inline-block;
+	/* For IE7 */
+	zoom: 1;
+	*display: inline;
+}
+
+.sawatch-admin-pane .main-menu ul li{
+	text-align: left;
+	float:left;
+	list-style:none;
+	font-size:12px;
+	margin-left:5px;
+	margin-right:5px;
+	border: 1px solid;
+}

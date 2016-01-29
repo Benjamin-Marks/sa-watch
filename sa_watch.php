@@ -1,6 +1,6 @@
 <?php
 /**
- * Plugin Name: Know Your Senator
+ * Plugin Name: Know Your Senators
  * Plugin URI: http://github.com/Benjamin-Marks/sa_watch
  * Description: This plugin provides summary information on the W&M Student Assembly Budget and members
  * Version: 1.0.0
@@ -9,11 +9,18 @@
  * License: GPL2
  */
 
+//This file handles install/uninstall capabilities
+
+
 global $sa_watch_db_version;
 $sa_watch_db_version = "1.0";
 
 register_activation_hook( __FILE__, 'sa_watch_install' );
-register_deactivation_hook( __FILE__, 'sa_watch_uninstall' ); //TODO: Remove this in production
+
+//Include our admin page scripts
+require_once(plugin_dir_path( __FILE__ ) . 'admin/admin.php');
+
+//register_deactivation_hook( __FILE__, 'sa_watch_uninstall' ); //FOR TESTING PURPOSES ONLY
 
 if (!function_exists('add_action')) {
 	echo "Do not call this plugin directly";
@@ -31,19 +38,19 @@ function sa_watch_install() {
 	$charset_collate = $wpdb->get_charset_collate();
 
 	//Install all our tables
-	$sql = "CREATE TABLE ".$prefix."representative (
+	$sql = "CREATE TABLE IF NOT EXISTS ".$prefix."representative (
 	  rep_id mediumint(9) NOT NULL AUTO_INCREMENT,
 	  firstname tinytext NOT NULL,
 	  lastname tinytext NOT NULL,
 	  classyear year NOT NULL,
 	  position enum ('pres', 'vp', 'senator')  NOT NULL,
 	  bio text DEFAULT '' NOT NULL,
-	  picture_url varchar(55) DEFAULT '' NOT NULL,
+	  picture_url varchar(255) DEFAULT '' NOT NULL,
 	  PRIMARY KEY rep_id (rep_id)
 	) $charset_collate;";
 	dbDelta( $sql );
 
-	$sql = "CREATE TABLE ".$prefix."bill (
+	$sql = "CREATE TABLE IF NOT EXISTS ".$prefix."bill (
 	  bill_id mediumint(9) NOT NULL AUTO_INCREMENT,
 	  name tinytext NOT NULL,
 	  vote_date date NOT NULL,
@@ -53,7 +60,7 @@ function sa_watch_install() {
 	) $charset_collate;";
 	dbDelta( $sql );
 
-	$sql = "CREATE TABLE ".$prefix."vote (
+	$sql = "CREATE TABLE IF NOT EXISTS ".$prefix."vote_id (
 	  vote_id mediumint(9) NOT NULL AUTO_INCREMENT,
 	  rep_id mediumint(9) NOT NULL,
 	  bill_id mediumint (9) NOT NULL,
@@ -64,7 +71,7 @@ function sa_watch_install() {
 	) $charset_collate;";
 	dbDelta( $sql );
 
-	$sql = "CREATE TABLE ".$prefix."budget_item (
+	$sql = "CREATE TABLE IF NOT EXISTS ".$prefix."budget_item (
 	  budget_id mediumint(9) NOT NULL AUTO_INCREMENT,
 	  name tinytext NOT NULL,
 	  description text DEFAULT '' NOT NULL,
@@ -72,7 +79,7 @@ function sa_watch_install() {
 	) $charset_collate;";
 	dbDelta( $sql );
 
-	$sql = "CREATE TABLE ".$prefix."budget_value (
+	$sql = "CREATE TABLE IF NOT EXISTS ".$prefix."budget_value (
 	  budget_value_id mediumint(9) NOT NULL AUTO_INCREMENT,
 	  budget_id mediumint(9) NOT NULL,
 	  date date NOT NULL,
@@ -96,4 +103,3 @@ function sa_watch_uninstall() {
 	$wpdb->query( "DROP TABLE IF EXISTS ".$prefix."bill" );	
 	$wpdb->query( "DROP TABLE IF EXISTS ".$prefix."budget_item" );
 }
-
