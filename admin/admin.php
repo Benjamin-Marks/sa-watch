@@ -75,8 +75,6 @@ function sa_process_val() {
 	//I am a stub
 }
 
-
-
 function sa_process_form() {
 	//Check if this is a form submission
 	if (!isset($_POST["type"])) {
@@ -134,7 +132,7 @@ function sa_data_entry() {
 				<input type="radio" name="position" value="vp">Vice President<br>
 				<input type="radio" name="position" value="senator">Senator<br>
 				Bio:<br>
-				<input type="text" name="bio"><br>
+				<textarea type="text" name="bio"></textarea><br>
 				Picture URL:<br>
 				<input type="text" name="picture_url"><br>
 				<input type="submit" value="Submit">
@@ -143,15 +141,61 @@ function sa_data_entry() {
 		</div>
 		<div id="bill-data" style="display:none;">
 			<p>Bill Input</p>
+			<form action="" method="post">
+				Bill Name:<br>
+				<input type="text" name="name"><br>
+				Vote Date:<br>
+				<input type="date" name="vote_date"><br>
+				Description:<br>
+				<textarea type="text" name="description"></textarea><br>
+				Result:<br>
+				<input type="radio" name="result" value="pass" checked>Passed<br>
+				<input type="radio" name="result" value="fail">Failed<br>
+				<input type="radio" name="result" value="tabled">Tabled<br>
+				<input type="submit" value="Submit">
+				<input type="hidden" name="type" value="bill"> <!-- Used when processing form -->
+			</form>
 		</div>
 		<div id="vote-data" style="display:none;">
 			<p>Votes Input</p>
+			<form action="" method="post">
+				Representative First Name:<br>
+				<input type="text" name="firstname"><br>
+				Representative Last Name:<br>
+				<input type="text" name="lastname"><br>
+				Bill Name:<br>
+				<textarea type="text" name="bill_name"></textarea><br>
+				Result:<br>
+				<input type="radio" name="vote" value="aye" checked>Aye<br>
+				<input type="radio" name="vote" value="nay">Nay<br>
+				<input type="radio" name="vote" value="abstain">Abstain<br>
+				<input type="submit" value="Submit">
+				<input type="hidden" name="type" value="vote"> <!-- Used when processing form -->
+			</form>
 		</div>
 		<div id="cat-data" style="display:none;">
 			<p>Budget Category Input</p>
+			<form action="" method="post">
+				Budget Category Name:<br>
+				<input type="text" name="name"><br>
+				Category Description:<br>
+				<textarea type="text" name="lastname"></textarea><br>
+				<input type="submit" value="Submit">
+				<input type="hidden" name="type" value="cat"> <!-- Used when processing form -->
+			</form>
 		</div>
 		<div id="val-data" style="display:none;">
 			<p>Budget Value Input</p>
+			<form action="" method="post">
+				Budget Category Name:<br>
+				<input type="text" name="cat_name"><br>
+				Date:<br>
+				<input type="date" name="date"><br>
+				Amount:<br>
+				<input type="text" name="amount"><br>
+				<input type="submit" value="Submit">
+				<input type="hidden" name="type" value="val"> <!-- Used when processing form -->
+			</form>
 		</div>
 	</div>
 <?php
