@@ -54,24 +54,31 @@ function sa_process_rep() {
 		)
 	);
 	} else {
-		//TODO: Make this more elegant
 		echo "Error: This name already exists in the database";
 	}
 }
 
 function sa_process_bill() {
+	global $wpdb;
+	$bill_table = $wpdb->prefix . "sa_watch_bill"; //TODO: Refactor this with sa_watch.php
 	//I am a stub
 }
 
 function sa_process_vote() {
+	global $wpdb;
+	$vote_table = $wpdb->prefix . "sa_watch_vote_id"; //TODO: Refactor this with sa_watch.php
 	//I am a stub
 }
 
 function sa_process_cat() {
+	global $wpdb;
+	$cat_table = $wpdb->prefix . "sa_watch_budget_item"; //TODO: Refactor this with sa_watch.php
 	//I am a stub
 }
 
 function sa_process_val() {
+	global $wpdb;
+	$val_table = $wpdb->prefix . "sa_watch_budget_value"; //TODO: Refactor this with sa_watch.php
 	//I am a stub
 }
 
@@ -106,6 +113,7 @@ function sa_process_form() {
 //Creates the HTML Admin Pane
 function sa_data_entry() {
 	sa_process_form();
+	//TODO: Reload same section the form was submitted from
 ?>
 	<div class="sawatch-admin-pane">
 		<h1> SA Data Entry </h1>
@@ -179,7 +187,7 @@ function sa_data_entry() {
 				Budget Category Name:<br>
 				<input type="text" name="name"><br>
 				Category Description:<br>
-				<textarea type="text" name="lastname"></textarea><br>
+				<textarea type="text" name="description"></textarea><br>
 				<input type="submit" value="Submit">
 				<input type="hidden" name="type" value="cat"> <!-- Used when processing form -->
 			</form>
