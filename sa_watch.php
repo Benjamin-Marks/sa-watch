@@ -11,8 +11,6 @@
 
 //This file handles install/uninstall capabilities
 
-
-global $sa_watch_db_version;
 $sa_watch_db_version = "1.0";
 
 register_activation_hook( __FILE__, 'sa_watch_install' );

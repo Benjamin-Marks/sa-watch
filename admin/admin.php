@@ -1,13 +1,7 @@
 <?php
 
-global $capability;
+//Globals
 $capability = 'edit_pages';
-
-global $rep_table;
-global $bill_table;
-global $vote_table;
-global $cat_table;
-global $val_table;
 $rep_table = $wpdb->prefix . "sa_watch_representative"; //TODO: Refactor these with sa_watch.php
 $bill_table = $wpdb->prefix . "sa_watch_bill";
 $vote_table = $wpdb->prefix . "sa_watch_vote_id";
