@@ -23,7 +23,9 @@
 	float:left;
 	list-style:none;
 	font-size:12px;
-	margin-left:5px;
-	margin-right:5px;
+	padding:6px;
+	margin-right:1px;
 	border: 1px solid;
+	cursor: pointer;
+	cursor: hand;
 }
