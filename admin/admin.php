@@ -12,6 +12,8 @@ $rep_table = $wpdb->prefix . "sa_watch_representative"; //TODO: Refactor these w
 $bill_table = $wpdb->prefix . "sa_watch_bill";
 $vote_table = $wpdb->prefix . "sa_watch_vote_id";
 $cat_table = $wpdb->prefix . "sa_watch_budget_item";
+$val_table = $wpdb->prefix . "sa_watch_budget_value";
+
 
 
 add_action( 'admin_menu', 'sawatch_admin_creation' );
@@ -128,7 +130,6 @@ function sa_data_entry() {
 	} else {
 		$type = "rep"; //Default to representative screen
 	}
-	//TODO: Display Budget Names/Rep Names via dropdown menu
 ?>
 	<div class="sawatch-admin-pane">
 		<h1> SA Data Entry </h1>
