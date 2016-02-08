@@ -64,27 +64,110 @@ function sa_process_rep() {
 }
 
 function sa_process_bill() {
-	global $wpdb;
 	global $bill_table;
-	//I am a stub
+	global $wpdb;
+    //If this bill does not exist, add it. If it do, output an error
+	//Validate data
+	if (empty($_POST["name"]) || empty($_POST["vote_date"])) {
+        echo "ERROR: Missing required Bill Name or Vote Date";
+		return;
+	} 
+	$bill_table = $wpdb->prefix . "sa_watch_bill"; //TODO: Refactor this with sa_watch.php
+    $results = $wpdb->get_results( "SELECT bill_id FROM " . $bill_table . " WHERE name='" . $_POST["name"] . 
+									"' AND vote_date='" . $_POST["vote_date"] ."';", OBJECT);
+    //If this bill does not exist, add them. If they do, output an error
+    if (count($results) <= 1) {
+		//TODO: check for duplicate bill
+        $wpdb->insert(
+		$bill_table,
+        array(
+			'name' => $_POST["name"],
+			'vote_date' => $_POST["vote_date"],
+			'description' => $_POST["description"],
+            'result' => $_POST["result"]
+		)
+	);
+	} else {
+		echo "Error: This Bill already exists in the database";
+	}
 }
 
 function sa_process_vote() {
 	global $wpdb;
 	global $vote_table;
-	//I am a stub
+	//Validate data
+	if (empty($_POST["rep"]) || empty($_POST["bill"])) {
+        echo "ERROR: Missing required name or Bill name";
+		return;
+        }
+    $vote_table = $wpdb->prefix . "sa_watch_vote_id"; //TODO: Refactor this with sa_watch.php
+    //If this vote does not exist, add it. If it does, output an error
+    $results = $wpdb->get_results( "SELECT vote_id FROM " . $vote_table . " WHERE rep_id='" . $_POST["rep"] . 
+									"' AND bill_id='" . $_POST["bill"] ."';", OBJECT);
+    if (count($results) <= 1) {
+		//TODO: check for duplicate vote
+			$wpdb->insert(
+		$vote_table,
+        array(
+			'rep_id' => $_POST["rep"],
+			'bill_id' => $_POST["bill"],
+            'vote_type' => $_POST["vote"]
+		)
+	);
+	} else {
+		echo "Error: You have already voted";
+	}
 }
 
 function sa_process_cat() {
 	global $wpdb;
 	global $cat_table;
-	//I am a stub
+		//Validate data
+	if (empty($_POST["name"])) {
+        echo "ERROR: Missing budget category name";
+		return;
+}
+    $cat_table = $wpdb->prefix . "sa_watch_budget_item"; //TODO: Refactor this with sa_watch.php
+    $results = $wpdb->get_results( "SELECT budget_id FROM " . $cat_table . " WHERE name='" . $_POST["name"] . 
+									"' AND description='" . $_POST["description"] ."';", OBJECT);
+    if (count($results) <= 1) {
+		//TODO: check for duplicate category
+			$wpdb->insert(
+		$cat_table,
+        array(
+			'name' => $_POST["name"],
+			'description' => $_POST["description"]
+)
+	);
+	} else {
+		echo "Error: You have already voted";
+	}
 }
 
 function sa_process_val() {
 	global $wpdb;
 	global $val_table;
-	//I am a stub
+		//Validate data
+	if (empty($_POST["cat"]) || empty($_POST["amount"]) || empty($_POST["date"])) {
+        echo "ERROR: Missing required name, amount or date";
+		return;
+        } 
+	$val_table = $wpdb->prefix . "sa_watch_budget_value"; //TODO: Refactor this with sa_watch.php
+    $results = $wpdb->get_results( "SELECT budget_id FROM " . $val_table . " WHERE budget_id='" . $_POST["cat"] . 
+									"' AND date='" . $_POST["date"] ."';", OBJECT);
+	//If thisbudget does not exist, add it. If they do, output an error
+	if (count($results) <= 1) {
+			$wpdb->insert(
+		$val_table,
+		array(
+			'budget_id' => $_POST["cat"],
+			'amount' => $_POST["amount"],
+			'date' => $_POST["date"]
+)
+	);
+	} else {
+		echo "Error: You have already entered information about this budget category";
+	}
 }
 
 function sa_process_form() {
