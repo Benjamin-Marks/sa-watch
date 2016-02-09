@@ -1,5 +1,5 @@
 .sawatch-admin-pane {
-	width: 600px;
+	width: 800px;
 }
 .sawatch-admin-pane .main-menu{
 	width:400px;
@@ -28,4 +28,18 @@
 	border: 1px solid;
 	cursor: pointer;
 	cursor: hand;
+}
+
+.sawatch-admin-pane .form-add {
+	width:400px;
+	float:left;
+}
+
+.sawatch-admin-pane .form-remove {
+	width:400px;
+	float:left;
+}
+
+.sawatch-admin-pane .form-add h3, .sawatch-admin-pane .form-remove h3{
+	text-align: center;
 }

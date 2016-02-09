@@ -24,42 +24,46 @@ function sawatch_admin_creation() {
 function sa_process_rep() {
 	global $wpdb;
 	global $rep_table;
+	if (!empty($_POST["add"])) {
+		//Validate data
+		if (empty($_POST["firstname"]) || empty($_POST["lastname"]) || 
+			empty($_POST["classyear"])) {
 
-	//Validate data
-	if (empty($_POST["firstname"]) || empty($_POST["lastname"]) || 
-		empty($_POST["classyear"])) {
+			echo "ERROR: Missing required name or classyear data";
+			return;
+		} else if (intval($_POST["classyear"]) < 2010 || 
+			intval($_POST["classyear"]) > (intval(date("Y")) + 10)) {
 
-		echo "ERROR: Missing required name or classyear data";
-		return;
-	} else if (intval($_POST["classyear"]) < 2010 || 
-		intval($_POST["classyear"]) > (intval(date("Y")) + 10)) {
+			echo "ERROR: Class year is an outlandish value";
+			return;
+		} else if (!empty($_POST["picture_url"]) && filter_var($_POST["picture_url"], FILTER_VALIDATE_URL)) {
 
-		echo "ERROR: Class year is not an integer or is an outlandish value";
-		return;
-	} else if (!empty($_POST["picture_url"]) && filter_var($_POST["picture_url"], FILTER_VALIDATE_URL)) {
-
-		echo "The picture is not a valid URL";
-		return;
-	}
-	//Search the database for this userID
-	$results = $wpdb->get_results( "SELECT rep_id FROM " . $rep_table . " WHERE firstname='" . $_POST["firstname"] . 
-									"' AND lastname='" . $_POST["lastname"] ."';", OBJECT);
-	//If this representative does not exist, add them. If they do, output an error
-	if (count($results) <= 1) {
-		//TODO: check for duplicate president and vice president
-			$wpdb->insert(
-		$rep_table,
-		array(
-			'firstname' => $_POST["firstname"],
-			'lastname' => $_POST["lastname"],
-			'classyear' => $_POST["classyear"],
-			'position' => $_POST["position"],
-			'bio' => $_POST["bio"],
-			'picture_url' => $_POST["picture_url"]
-		)
-	);
+			echo "The picture is not a valid URL";
+			return;
+		}
+		//Search the database for this userID
+		$results = $wpdb->get_results( "SELECT rep_id FROM " . $rep_table . " WHERE firstname='" . $_POST["firstname"] . 
+										"' AND lastname='" . $_POST["lastname"] ."';", OBJECT);
+		//If this representative does not exist, add them. If they do, output an error
+		if (count($results) <= 1) {
+			//TODO: check for duplicate president and vice president
+				$wpdb->insert(
+			$rep_table,
+			array(
+				'firstname' => $_POST["firstname"],
+				'lastname' => $_POST["lastname"],
+				'classyear' => $_POST["classyear"],
+				'position' => $_POST["position"],
+				'bio' => $_POST["bio"],
+				'picture_url' => $_POST["picture_url"]
+			)
+		);
+		} else {
+			echo "Error: This name already exists in the database";
+		}
 	} else {
-		echo "Error: This name already exists in the database";
+		//Remove rep - see https://codex.wordpress.org/Class_Reference/wpdb#DELETE_Rows for usage
+		$wpdb->delete($rep_table, array('rep_id' => $_POST["rep_id"]));
 	}
 }
 
@@ -221,23 +225,38 @@ function sa_data_entry() {
 		</nav>
 		<div id="rep-data" <?php if ($type != "rep") echo 'style="display:none;"'; ?>>
 			<form action="" method="post">
-				<h3>Representative Input</h3>
-				First name:<br>
-				<input type="text" name="firstname"><br>
-				Last name:<br>
-				<input type="text" name="lastname"><br>
-				Class Year:<br>
-				<input type="number" name="classyear"><br>
-				Position:<br>
-				<input type="radio" name="position" value="pres" checked>President<br>
-				<input type="radio" name="position" value="vp">Vice President<br>
-				<input type="radio" name="position" value="senator">Senator<br>
-				Bio:<br>
-				<textarea type="text" name="bio"></textarea><br>
-				Picture URL:<br>
-				<input type="text" name="picture_url"><br>
-				<input type="submit" value="Submit">
-				<input type="hidden" name="type" value="rep"> <!-- Used when processing form -->
+				<div class="form-add">
+					<h3>Representative Input</h3>
+					First name:<br>
+					<input type="text" name="firstname"><br>
+					Last name:<br>
+					<input type="text" name="lastname"><br>
+					Class Year:<br>
+					<input type="number" name="classyear"><br>
+					Position:<br>
+					<input type="radio" name="position" value="pres" checked>President<br>
+					<input type="radio" name="position" value="vp">Vice President<br>
+					<input type="radio" name="position" value="senator">Senator<br>
+					Bio:<br>
+					<textarea type="text" name="bio"></textarea><br>
+					Picture URL:<br>
+					<input type="text" name="picture_url"><br>
+					<input type="submit" name="add" value="Submit">
+					<input type="hidden" name="type" value="rep"> <!-- Used when processing form -->
+				</div>
+				<div class="form-remove">
+					<h3>Representative Removal</h3>
+					<?php
+					//Load all representatives
+					$results = $wpdb->get_results( "SELECT rep_id, firstname, lastname FROM " . $rep_table  .";", OBJECT);
+					echo '<select name="rep_id">';
+					foreach ($results as $rep) {
+						echo "<option value=" . $rep->rep_id . "> " . $rep->firstname . " " . $rep->lastname . "</option>";
+					}
+					echo "</select><br>";
+					?>
+					<input type="submit" name="remove" value="Submit">
+				</div>
 			</form>
 		</div>
 		<div id="bill-data" <?php if ($type != "bill") echo 'style="display:none;"'; ?>>
