@@ -75,27 +75,26 @@ function sa_process_bill() {
 	if (empty($_POST["name"]) || empty($_POST["vote_date"])) {
         echo "ERROR: Missing required Bill Name or Vote Date";
 		return;
-	} 
+	}
 	$bill_table = $wpdb->prefix . "sa_watch_bill"; //TODO: Refactor this with sa_watch.php
     $results = $wpdb->get_results( "SELECT bill_id FROM " . $bill_table . " WHERE name='" . $_POST["name"] . 
 									"' AND vote_date='" . $_POST["vote_date"] ."';", OBJECT);
     //If this bill does not exist, add them. If they do, output an error
     if (count($results) <= 1) {
 		//TODO: check for duplicate bill
-        $wpdb->insert(
+            $wpdb->insert(
 		$bill_table,
         array(
 			'name' => $_POST["name"],
 			'vote_date' => $_POST["vote_date"],
 			'description' => $_POST["description"],
             'result' => $_POST["result"]
-		)
-	);
-	} else {
-		echo "Error: This Bill already exists in the database";
-	}
+            )
+	   );
+	   } else {
+		  echo "Error: This Bill already exists in the database";
+	} 
 }
-
 function sa_process_vote() {
 	global $wpdb;
 	global $vote_table;
@@ -205,6 +204,7 @@ function sa_data_entry() {
 	global $rep_table;
 	global $bill_table;
 	global $cat_table;
+    global $vote_table;
 	//Check if this is a form submission
 	if (isset($_POST["type"])) {
 		$type = sa_process_form();
@@ -260,9 +260,10 @@ function sa_data_entry() {
 			</form>
 		</div>
 		<div id="bill-data" <?php if ($type != "bill") echo 'style="display:none;"'; ?>>
-			<h3>Bill Input</h3>
-			<form action="" method="post">
-				Bill Name:<br>
+            <form action="" method="post">
+                <div class="form-add">
+                     <h3>Bill Input</h3>
+                Bill Name:<br>
 				<input type="text" name="name"><br>
 				Vote Date:<br>
 				<input type="date" name="vote_date"><br>
@@ -276,9 +277,24 @@ function sa_data_entry() {
 				<input type="hidden" name="type" value="bill"> <!-- Used when processing form -->
 			</form>
 		</div>
-		<div id="vote-data" <?php if ($type != "vote") echo 'style="display:none;"'; ?>>
+        	<div class="form-remove">
+					<h3>Bill Removal</h3>
+					<?php
+					//Load all bills
+					$results = $wpdb->get_results( "SELECT bill_id, name, vote_date FROM " . $bill_table  .";", OBJECT);
+					echo '<select name="bill_id">';
+					foreach ($results as $bill) {
+						echo "<option value=" . $bill->name . "> " . $bill->vote_date . " " . "</option>";
+					}
+					echo "</select><br>";
+					?>
+					<input type="submit" name="remove" value="Submit">
+				</div>
+			</form>
+		</div>
+		<div id="vote-data" <?php if ($type != "vote") echo 'style="display:none;"'; ?>> <form action="" method="post">
+            <div class="form-add">
 			<h3>Votes Input</h3>
-			<form action="" method="post">
 				Representative:<br>
 				<?php 
 				$results = $wpdb->get_results( "SELECT rep_id, firstname, lastname FROM " . $rep_table  .";", OBJECT);
@@ -305,9 +321,25 @@ function sa_data_entry() {
 				<input type="hidden" name="type" value="vote"> <!-- Used when processing form -->
 			</form>
 		</div>
+        <div class="form-remove">
+					<h3>Vote Removal</h3>
+					<?php
+					//Load all votes
+					$results = $wpdb->get_results( "SELECT vote_id, vote_type FROM " . $vote_table  .";", OBJECT);
+					echo '<select name="vote_id">';
+					foreach ($results as $vote) {
+						echo "<option value=" . $vote->vote_type . "</option>";
+					}
+					echo "</select><br>";
+					?>
+					<input type="submit" name="remove" value="Submit">
+				</div>
+			</form>
+		</div>
 		<div id="cat-data" <?php if ($type != "cat") echo 'style="display:none;"'; ?>>
+            <form action="" method="post">
+            <div class="form-add">
 			<h3>Budget Category Input</h3>
-			<form action="" method="post">
 				Budget Category Name:<br>
 				<input type="text" name="name"><br>
 				Category Description:<br>
@@ -316,9 +348,25 @@ function sa_data_entry() {
 				<input type="hidden" name="type" value="cat"> <!-- Used when processing form -->
 			</form>
 		</div>
+    	<div class="form-remove">
+					<h3>Category Removal</h3>
+					<?php
+					//Load all categories
+					$results = $wpdb->get_results( "SELECT budget_id, name, description FROM " . $cat_table  .";", OBJECT);
+					echo '<select name="budget_id">';
+					foreach ($results as $cat) {
+						echo "<option value=" . $cat->name . "> " . $cat->description . " " . "</option>";
+					}
+					echo "</select><br>";
+					?>
+					<input type="submit" name="remove" value="Submit">
+				</div>
+			</form>
+		</div>
 		<div id="val-data" <?php if ($type != "val") echo 'style="display:none;"'; ?>>
+            <form action="" method="post">
+            <div class="form-add">
 			<h3>Budget Value Input</h3>
-			<form action="" method="post">
 				Budget Category Name:<br>
 				<?php 
 				$results = $wpdb->get_results( "SELECT budget_id, name FROM " . $cat_table  .";", OBJECT);
@@ -336,6 +384,23 @@ function sa_data_entry() {
 				<input type="hidden" name="type" value="val"> <!-- Used when processing form -->
 			</form>
 		</div>
+        <div class="form-remove">
+					<h3>Budget Value Removal</h3>
+					<?php
+					//Load all categories
+					$results = $wpdb->get_results( "SELECT budget_id, name FROM " . $cat_table  .";", OBJECT);
+					echo '<select name="cat">';
+					foreach ($results as $cat) {
+						echo "<option value=" . $cat->budget_id . "> " . $cat->name . " " . "</option>";
+					}
+					echo "</select><br>";
+					?>
+					<input type="submit" name="remove" value="Submit">
+				</div>
+			</form>
+		</div>
 	</div>
+</form>
+</div>
 <?php
 }
