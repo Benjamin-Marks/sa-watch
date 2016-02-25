@@ -13,12 +13,15 @@
 
 $sa_watch_db_version = "1.0";
 
-register_activation_hook( __FILE__, 'sa_watch_install' );
+register_activation_hook(__FILE__, 'sa_watch_install');
 
 //Include our admin page scripts
-require_once(plugin_dir_path( __FILE__ ) . 'admin/admin.php');
+require_once(plugin_dir_path(__FILE__) . 'admin/admin.php');
 
-//register_deactivation_hook( __FILE__, 'sa_watch_uninstall' ); //FOR TESTING PURPOSES ONLY
+//Include our views scripts and shortcodes
+require_once(plugin_dir_path(__FILE__) . 'views/budget.php');
+
+//register_deactivation_hook(__FILE__, 'sa_watch_uninstall'); //FOR TESTING PURPOSES ONLY
 
 if (!function_exists('add_action')) {
 	echo "Do not call this plugin directly";
@@ -26,14 +29,14 @@ if (!function_exists('add_action')) {
 }
 
 function sa_watch_install() {
-	global $wpdb;
-	global $sa_watch_db_version;
-	require_once( ABSPATH . 'wp-admin/includes/upgrade.php' );
+	global $wpdb, $sa_watch_db_version;
+	require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
 
 	add_option("sa_watch_db_version", $sa_watch_db_version);
 
 	$prefix = $wpdb->prefix . "sa_watch_";
 	$charset_collate = $wpdb->get_charset_collate();
+
 
 	//Install all our tables
 	$sql = "CREATE TABLE IF NOT EXISTS ".$prefix."representative (
@@ -46,7 +49,7 @@ function sa_watch_install() {
 	  picture_url varchar(255) DEFAULT '' NOT NULL,
 	  PRIMARY KEY rep_id (rep_id)
 	) $charset_collate;";
-	dbDelta( $sql );
+	dbDelta($sql);
 
 	$sql = "CREATE TABLE IF NOT EXISTS ".$prefix."bill (
 	  bill_id mediumint(9) NOT NULL AUTO_INCREMENT,
@@ -56,7 +59,7 @@ function sa_watch_install() {
 	  result enum ('passed', 'failed', 'tabled')  NOT NULL,
 	  PRIMARY KEY bill_id (bill_id)
 	) $charset_collate;";
-	dbDelta( $sql );
+	dbDelta($sql);
 
 	$sql = "CREATE TABLE IF NOT EXISTS ".$prefix."vote_id (
 	  vote_id mediumint(9) NOT NULL AUTO_INCREMENT,
@@ -67,7 +70,7 @@ function sa_watch_install() {
 	  FOREIGN KEY (bill_id) REFERENCES ".$prefix."bill(bill_id),
 	  PRIMARY KEY vote_id (vote_id)
 	) $charset_collate;";
-	dbDelta( $sql );
+	dbDelta($sql);
 
 	$sql = "CREATE TABLE IF NOT EXISTS ".$prefix."budget_item (
 	  budget_id mediumint(9) NOT NULL AUTO_INCREMENT,
@@ -75,7 +78,7 @@ function sa_watch_install() {
 	  description text DEFAULT '' NOT NULL,
 	  PRIMARY KEY budget_id (budget_id)
 	) $charset_collate;";
-	dbDelta( $sql );
+	dbDelta($sql);
 
 	$sql = "CREATE TABLE IF NOT EXISTS ".$prefix."budget_value (
 	  budget_value_id mediumint(9) NOT NULL AUTO_INCREMENT,
@@ -85,19 +88,62 @@ function sa_watch_install() {
 	  FOREIGN KEY (budget_id) REFERENCES ".$prefix."budget_item(budget_id),
 	  PRIMARY KEY budget_value_id (budget_value_id)
 	) $charset_collate;";
-	dbDelta( $sql );
+	dbDelta($sql);
+
+
+	//Create our Budget Graph Page
+	$graph_title = 'Student Assembly Budget Tracker';
+	$graph_slug = 'sa-budget-graph';
+
+	// the menu entry
+	delete_option("sa_budget_title");
+	add_option("sa_budget_title", $graph_title, '', 'yes');
+	// the slug
+	delete_option("sa_budget_slug");
+	add_option("sa_budget_slug", $graph_slug, '', 'yes');
+	// the id
+	delete_option("sa_budget_id");
+	add_option("sa_budget_id", '0', '', 'yes');
+
+	$graph_page = get_page_by_title($graph_title);
+
+	if (!$graph_page) {
+		// Create post object
+		$_p = array();
+		$_p['post_title'] = $graph_title;
+		$_p['post_content'] = "[sa_watch_graph_content]";
+		$_p['post_status'] = 'publish';
+		$_p['post_type'] = 'page';
+		$_p['comment_status'] = 'closed';
+		$_p['ping_status'] = 'closed';
+		$_p['post_category'] = array(3592); //No Sidebar WARNING: THIS ID IS HARDCODED THIS SHOULD BE CHANGED
+
+		// Insert the post into the database
+		$graph_page_id = wp_insert_post($_p);
+	} else {
+		// the plugin may have been previously active and the page may just be trashed
+		$graph_page_id = $graph_page->ID;
+		$graph_page->post_status = 'publish';
+		$graph_page_id = wp_update_post($graph_page);
+	}
+
+	delete_option('sa_budget_id');
+	add_option('sa_budget_id', $graph_page_id);
 }
 
+
+//For Debug Purposes only, don't let some user remove our precious data
 function sa_watch_uninstall() {
+	global $wpdb;
+
 	//Remove options
-	delete_option( 'sa_watch_db_version' );
+	delete_option('sa_watch_db_version');
 
 	//drop tables
-	global $wpdb;
 	$prefix = $wpdb->prefix . "sa_watch_";
-	$wpdb->query( "DROP TABLE IF EXISTS ".$prefix."budget_value" );
-	$wpdb->query( "DROP TABLE IF EXISTS ".$prefix."vote" );
-	$wpdb->query( "DROP TABLE IF EXISTS ".$prefix."representative" );
-	$wpdb->query( "DROP TABLE IF EXISTS ".$prefix."bill" );	
-	$wpdb->query( "DROP TABLE IF EXISTS ".$prefix."budget_item" );
+	$wpdb->query("DROP TABLE IF EXISTS ".$prefix."budget_value");
+	$wpdb->query("DROP TABLE IF EXISTS ".$prefix."vote");
+	$wpdb->query("DROP TABLE IF EXISTS ".$prefix."representative");
+	$wpdb->query("DROP TABLE IF EXISTS ".$prefix."bill");	
+	$wpdb->query("DROP TABLE IF EXISTS ".$prefix."budget_item");
 }
