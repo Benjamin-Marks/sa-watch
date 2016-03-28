@@ -1,24 +1,74 @@
 <?php 
 
+add_shortcode('sa_watch_graph_content', 'sa_watch_graph_shortcode');
+
+
+//Database handling for our javascript
+add_action('wp_sa_watch_ajax_budget_graph', 'sa_watch_budget_callback');
+
+function sa_watch_budget_callback() {
+  global $wpdb;
+  $cat_table = $wpdb->prefix . "sa_watch_budget_item"; //TODO: Refactor
+  $val_table = $wpdb->prefix . "sa_watch_budget_value"; //TODO: Refactor
+  //Grab Budget entries out of the database, place in array
+  //Get full list of dates
+  $dates = $wpdb->get_results("SELECT DISTINCT date FROM " . $val_table . " ORDER BY date;", OBJECT);
+
+  //Get full list of names and output it
+  $names = $wpdb->get_results( "SELECT budget_id, name FROM " . $cat_table . ";", OBJECT);
+  echo "['Date'";
+  //Verify each category has at least one data point, otherwise chart won't load
+  for ($i = 0; $i < count($names); $i++) {
+    $data = $wpdb->get_results("SELECT amount FROM " . $val_table . " WHERE budget_id = " . $names[$i]->budget_id . ";", OBJECT);
+    if (count($data) != 0) {
+      echo ", '" . $names[$i]->name . "' ";
+    } else {
+      //If this category has no data, remove it from our array
+      unset($names[$i]);
+      $i--;
+    }
+  }
+  echo "]";
+
+  //Get data for names and dates TODO: this is super inefficient - we call the database a ton of times. Optimize it
+  $date_size = count($dates);
+  $name_size = count($names);
+  for ($i = 0; $i < $date_size; $i++) {
+    $data = $wpdb->get_results("SELECT budget_id, amount FROM " . $val_table . " WHERE date = '" . $dates[$i]->date . "' AND budget_id = " . $names[0]->budget_id . ";", OBJECT);
+    if (count($data) == 0) {
+      echo ", ['" . strval($dates[$i]->date) . "', null";
+    } else {
+      echo ", ['" . strval($dates[$i]->date) . "', " . strval($data[0]->amount);
+    }
+    for ($j = 1; $j < $name_size; $j++) {
+      $data = $wpdb->get_results("SELECT budget_id, amount, date FROM " . $val_table . " WHERE date = '" . $dates[$i]->date . "' AND budget_id = " . $names[$j]->budget_id . ";", OBJECT);
+      if (count($data) < 1) { //Assuming it's 0, otherwise weird and invalid
+        echo ", null";
+      } else {
+        echo ", " . strval($data[0]->amount);
+      }
+    }
+    echo "]";
+  }
+}
+
+
 //Register our Budget graph shortcode
 function sa_watch_graph_shortcode() { ?>
   <script type="text/javascript" src="https://www.gstatic.com/charts/loader.js"></script>
   <script type="text/javascript">
+    var data;
     google.charts.load('current', {'packages':['corechart']});
     google.charts.setOnLoadCallback(drawChart);
     function drawChart() {
       //TODO: how to make this continuous
       var data = google.visualization.arrayToDataTable([
-        ['Date', 'Things', 'Stuff'],
-        ['Jan 1, 2015',   800,   400],
-        ['Feb 1, 2015',   700,   390],
-        ['Feb 6, 2015',   660,   280],
-        ['April 1 2015',  300,   0]
+        <?php echo sa_watch_budget_callback(); ?>
       ]);
       data.setColumnProperty(0, 'type', 'date');
       var options = {
-        title: 'Company Performance',
-        hAxis: {title: 'Date',  titleTextStyle: {color: '#333'}, format: ['MMM d, y']},
+        title: 'SA Budgeted Funds Remaining',
+        hAxis: {title: 'Date',  titleTextStyle: {color: '#333'}, format: ['YYYY-MM-DD']},
         vAxis: {minValue: 0},
         isStacked: true
       };
@@ -30,19 +80,4 @@ function sa_watch_graph_shortcode() { ?>
   <div id="chart_div" style="width: 900px; height: 500px;"></div>
 
 <?php
-}
-add_shortcode('sa_watch_graph_content', 'sa_watch_graph_shortcode');
-
-
-//Database handling for our javascript
-add_action('wp_sa_watch_ajax_budget_graph', 'sa_watch_budget_callback');
-
-function sa_watch_budget_callback() {
-  global $wpdb;
-
-  //Grab Budget entries out of the database, place in array
-
-
-
-  wp_die(); //To prevent slow or trailing output
 }

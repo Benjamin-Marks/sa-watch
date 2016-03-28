@@ -151,7 +151,7 @@ function sa_process_cat() {
 				)
 			);
 		} else {
-			echo "Error: You have already voted";
+			echo "Error: This category already exists";
 		}
 	} else {
 		$wpdb->delete($cat_table, array('budget_id' => $_POST["budget_id"]));
@@ -169,8 +169,8 @@ function sa_process_val() {
 		$val_table = $wpdb->prefix . "sa_watch_budget_value"; //TODO: Refactor this with sa_watch.php
 		$results = $wpdb->get_results( "SELECT budget_id FROM " . $val_table . " WHERE budget_id='" . $_POST["cat"] . 
 										"' AND date='" . $_POST["date"] ."';", OBJECT);
-		//If thisbudget does not exist, add it. If they do, output an error
-		if (count($results) <= 1) {
+		//If this budget does not exist, add it. If they do, output an error
+		if (count($results) < 1) {
 			$wpdb->insert(
 				$val_table,
 				array(
@@ -180,7 +180,7 @@ function sa_process_val() {
 				)
 			);
 		} else {
-			echo "Error: You have already entered information about this budget category";
+			echo "Error: You have already entered information about this budget value";
 		}
 	} else {
 		$wpdb->delete($val_table, array('budget_value_id' => $_POST["val_id"]));
