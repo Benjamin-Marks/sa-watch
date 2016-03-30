@@ -19,9 +19,9 @@ add_action( 'admin_menu', 'sawatch_admin_creation' );
 function sawatch_admin_creation() {
 	global $capability;
 	add_submenu_page( 'tools.php', 'SA Data Entry', 'SA Data Entry', $capability, 'sa_data_entry', 'sa_data_entry');
+	wp_enqueue_script( 'sa-watch-admin', plugin_dir_url( __FILE__ ) . 'admin_pane.js' );
 	wp_register_style( 'sa-watch', plugins_url( 'sa_watch/style.css' ) );
 	wp_enqueue_style( 'sa-watch' );
-	wp_enqueue_script( 'sa-watch-admin', plugin_dir_url( __FILE__ ) . 'admin_pane.js' );
 }
 
 function sa_process_rep() {
@@ -29,7 +29,7 @@ function sa_process_rep() {
 	if (!empty($_POST["add"])) {
 		//Validate data
 		if (empty($_POST["firstname"]) || empty($_POST["lastname"]) || 
-			empty($_POST["classyear"])) {
+			empty($_POST["classyear"]) || empty($_POST["student_id"])) {
 
 			echo "ERROR: Missing required name or classyear data";
 			return;
@@ -38,22 +38,36 @@ function sa_process_rep() {
 
 			echo "ERROR: Class year is an outlandish value";
 			return;
-		} else if (!empty($_POST["picture_url"]) && filter_var($_POST["picture_url"], FILTER_VALIDATE_URL)) {
-
-			echo "The picture is not a valid URL";
-			return;
+		} else if (!empty($_POST["picture_url"])) {
+			if(!filter_var($_POST["picture_url"], FILTER_VALIDATE_URL)) {
+				echo "The picture is not a valid URL";
+				return;
+			}
 		}
 		//Search the database for this userID
-		$results = $wpdb->get_results( "SELECT rep_id FROM " . $rep_table . " WHERE firstname='" . $_POST["firstname"] . 
-										"' AND lastname='" . $_POST["lastname"] ."';", OBJECT);
+		$results = $wpdb->get_results( "SELECT rep_id FROM " . $rep_table . " WHERE student_id='" . $_POST["student_id"] . "';", OBJECT);
 		//If this representative does not exist, add them. If they do, output an error
 		if (count($results) <= 1) {
-			//TODO: check for duplicate president and vice president
+			//TODO: remove code duplication
+			if (strcmp($_POST["position"], 'pres') == 0) {
+				$pres = $wpdb->get_results("SELECT firstname, lastname FROM " . $rep_table . " WHERE position='pres';", OBJECT);
+				if (count($pres) != 0) {
+					echo "Error: A president is already in the database: " . $pres[0]->firstname . " " . $pres[0]->lastname;
+					return;
+				}
+			} else if (strcmp($_POST["position"], 'vp') == 0) {
+				$vp = $wpdb->get_results("SELECT firstname, lastname FROM " . $rep_table . " WHERE position='vp';", OBJECT);
+				if (count($vp) != 0) {
+					echo "Error: A vice president is already in the database: " . $vp[0]->firstname . " " . $vp[0]->lastname;
+					return;
+				}
+			}
 			$wpdb->insert(
 				$rep_table,
 				array(
 					'firstname' => $_POST["firstname"],
 					'lastname' => $_POST["lastname"],
+					'student_id' => $_POST["student_id"],
 					'classyear' => $_POST["classyear"],
 					'position' => $_POST["position"],
 					'bio' => $_POST["bio"],
@@ -241,6 +255,8 @@ function sa_data_entry() {
 					<input type="text" name="firstname"><br>
 					Last name:<br>
 					<input type="text" name="lastname"><br>
+					Student ID (for email):<br>
+					<input type="text" name="student_id"><br>
 					Class Year:<br>
 					<input type="number" name="classyear"><br>
 					Position:<br>
