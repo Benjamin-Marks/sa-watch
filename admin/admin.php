@@ -1,23 +1,11 @@
 <?php
 
-//Globals
-
-global $wpdb;
-
-$capability = 'edit_pages';
-$rep_table = $wpdb->prefix . "sa_watch_representative"; //TODO: Refactor these with sa_watch.php
-$bill_table = $wpdb->prefix . "sa_watch_bill";
-$vote_table = $wpdb->prefix . "sa_watch_vote_id";
-$cat_table = $wpdb->prefix . "sa_watch_budget_item";
-$val_table = $wpdb->prefix . "sa_watch_budget_value";
-
-
-
 add_action( 'admin_menu', 'sawatch_admin_creation' );
 
 //Registers our admin pane
 function sawatch_admin_creation() {
-	global $capability;
+	$capability = 'edit_pages';
+	
 	add_submenu_page( 'tools.php', 'SA Data Entry', 'SA Data Entry', $capability, 'sa_data_entry', 'sa_data_entry');
 	wp_enqueue_script( 'sa-watch-admin', plugin_dir_url( __FILE__ ) . 'admin_pane.js' );
 	wp_register_style( 'sa-watch', plugins_url( 'sa_watch/style.css' ) );
@@ -25,7 +13,7 @@ function sawatch_admin_creation() {
 }
 
 function sa_process_rep() {
-	global $wpdb, $rep_table;
+	global $wpdb, $rep_table, $vote_table;
 	if (!empty($_POST["add"])) {
 		//Validate data
 		if (empty($_POST["firstname"]) || empty($_POST["lastname"]) || 
@@ -45,20 +33,25 @@ function sa_process_rep() {
 			}
 		}
 		//Search the database for this userID
-		$results = $wpdb->get_results( "SELECT rep_id FROM " . $rep_table . " WHERE student_id='" . $_POST["student_id"] . "';", OBJECT);
+		$results = $wpdb->get_results( "SELECT rep_id FROM $rep_table WHERE student_id='" . $_POST["student_id"] . "';", OBJECT);
 		//If this representative does not exist, add them. If they do, output an error
-		if (count($results) <= 1) {
-			//TODO: remove code duplication
+		if (count($results) < 1) {
 			if (strcmp($_POST["position"], 'pres') == 0) {
-				$pres = $wpdb->get_results("SELECT firstname, lastname FROM " . $rep_table . " WHERE position='pres';", OBJECT);
+				$pres = $wpdb->get_results("SELECT firstname, lastname FROM $rep_table WHERE position='pres';", OBJECT);
 				if (count($pres) != 0) {
 					echo "Error: A president is already in the database: " . $pres[0]->firstname . " " . $pres[0]->lastname;
 					return;
 				}
 			} else if (strcmp($_POST["position"], 'vp') == 0) {
-				$vp = $wpdb->get_results("SELECT firstname, lastname FROM " . $rep_table . " WHERE position='vp';", OBJECT);
+				$vp = $wpdb->get_results("SELECT firstname, lastname FROM $rep_table WHERE position='vp';", OBJECT);
 				if (count($vp) != 0) {
 					echo "Error: A vice president is already in the database: " . $vp[0]->firstname . " " . $vp[0]->lastname;
+					return;
+				}
+			} else if (strcmp($_POST["postition"], 'classpres') == 0) {
+				$classpres = $wpdb->get_results("SELECT firstname, lastname FROM $rep_table WHERE position='vp' AND classyear=" . $_POST["classyear"] .";", OBJECT);
+				if (count($vp) != 0) {
+					echo "Error: A class of " . $_POST["classyear"] . " president is already in the database: " . $classpres[0]->firstname . " " . $classpres[0]->lastname;
 					return;
 				}
 			}
@@ -78,26 +71,36 @@ function sa_process_rep() {
 			echo "Error: This name already exists in the database";
 		}
 	} else {
-		//Remove rep - see https://codex.wordpress.org/Class_Reference/wpdb#DELETE_Rows for usage
-		$wpdb->delete($rep_table, array('rep_id' => $_POST["rep_id"]));
+		//Remove rep
+		//Check for foreign key constraints
+		$votes = $wpdb->get_results("SELECT vote_id FROM $vote_table where rep_id='" . $_POST["rep_id"] . "';");
+		if (count($votes) >= 1) {
+			//If they have votes but we're supposed to delete them, delete. Otherwise error out
+			if (isset($_POST["deleteDep"])) {
+				$wpdb->delete($vote_table, array('rep_id' => $_POST["rep_id"]));
+				$wpdb->delete($rep_table, array('rep_id' => $_POST["rep_id"]));
+			} else {
+				echo "Error: This representative has voted on bills. Please either delete these votes manually or confirm you would like them all to be deleted";
+			}
+		} else {
+			//If there are no votes, just delete
+			$wpdb->delete($rep_table, array('rep_id' => $_POST["rep_id"]));
+		}
 	}
 }
 
 function sa_process_bill() {
-	global $wpdb, $bill_table;
+	global $wpdb, $bill_table, $vote_table;
 	if (!empty($_POST["add"])) {
 		//If this bill does not exist, add it. If it do, output an error
 		//Validate data
-		if (empty($_POST["name"]) || empty($_POST["vote_date"])) {
-			echo "ERROR: Missing required Bill Name or Vote Date";
+		if (empty($_POST["name"])) {
+			echo "ERROR: Missing bill name";
 			return;
 		}
-		$bill_table = $wpdb->prefix . "sa_watch_bill"; //TODO: Refactor this with sa_watch.php
-		$results = $wpdb->get_results( "SELECT bill_id FROM " . $bill_table . " WHERE name='" . $_POST["name"] . 
-										"' AND vote_date='" . $_POST["vote_date"] ."';", OBJECT);
+		$results = $wpdb->get_results( "SELECT bill_id FROM $bill_table WHERE name='" . $_POST["name"] . "';", OBJECT);
 		//If this bill does not exist, add them. If they do, output an error
-		if (count($results) <= 1) {
-			//TODO: check for duplicate bill
+		if (count($results) < 1) {
 			$wpdb->insert(
 				$bill_table,
 				array(
@@ -111,7 +114,20 @@ function sa_process_bill() {
 			  echo "Error: This Bill already exists in the database";
 		}
 	} else {
-		$wpdb->delete($bill_table, array('bill_id' => $_POST["bill_id"]));
+		//Check for foreign key constraints
+		$votes = $wpdb->get_results("SELECT vote_id FROM $vote_table where bill_id='" . $_POST["bill_id"] . "';");
+		if (count($votes) >= 1) {
+			//If the bill has votes but we're supposed to delete them, delete. Otherwise error out
+			if (isset($_POST["deleteDep"])) {
+				$wpdb->delete($vote_table, array('bill_id' => $_POST["bill_id"]));
+				$wpdb->delete($bill_table, array('bill_id' => $_POST["bill_id"]));
+			} else {
+				echo "Error: This bill has associated votes. Please either delete these votes manually or confirm you would like them all to be deleted";
+			}
+		} else {
+			//If there are no votes, just delete
+			$wpdb->delete($bill_table, array('bill_id' => $_POST["bill_id"]));
+		}
 	} 
 }
 function sa_process_vote() {
@@ -119,15 +135,13 @@ function sa_process_vote() {
 	if (!empty($_POST["add"])) {
 		//Validate data
 		if (empty($_POST["rep"]) || empty($_POST["bill"])) {
-			echo "ERROR: Missing required name or Bill name";
+			echo "ERROR: Missing required Representative or Bill name";
 			return;
 			}
-		$vote_table = $wpdb->prefix . "sa_watch_vote_id"; //TODO: Refactor this with sa_watch.php
 		//If this vote does not exist, add it. If it does, output an error
-		$results = $wpdb->get_results( "SELECT vote_id FROM " . $vote_table . " WHERE rep_id='" . $_POST["rep"] . 
+		$results = $wpdb->get_results( "SELECT vote_id FROM $vote_table WHERE rep_id='" . $_POST["rep"] . 
 										"' AND bill_id='" . $_POST["bill"] ."';", OBJECT);
-		if (count($results) <= 1) {
-			//TODO: check for duplicate vote
+		if (count($results) < 1) {
 			$wpdb->insert(
 				$vote_table,
 				array(
@@ -145,18 +159,16 @@ function sa_process_vote() {
 }
 
 function sa_process_cat() {
-	global $wpdb, $cat_table;
+	global $wpdb, $cat_table, $val_table;
 	if (!empty($_POST["add"])) {
 		//Validate data
 		if (empty($_POST["name"])) {
 			echo "ERROR: Missing budget category name";
 			return;
 		}
-		$cat_table = $wpdb->prefix . "sa_watch_budget_item"; //TODO: Refactor this with sa_watch.php
-		$results = $wpdb->get_results( "SELECT budget_id FROM " . $cat_table . " WHERE name='" . $_POST["name"] . 
+		$results = $wpdb->get_results( "SELECT budget_id FROM $cat_table WHERE name='" . $_POST["name"] . 
 										"' AND description='" . $_POST["description"] ."';", OBJECT);
-		if (count($results) <= 1) {
-			//TODO: check for duplicate category
+		if (count($results) < 1) {
 			$wpdb->insert(
 				$cat_table,
 				array(
@@ -168,7 +180,20 @@ function sa_process_cat() {
 			echo "Error: This category already exists";
 		}
 	} else {
-		$wpdb->delete($cat_table, array('budget_id' => $_POST["budget_id"]));
+		//Check for foreign key constraints
+		$vals = $wpdb->get_results("SELECT budget_value_id FROM $val_table where budget_id='" . $_POST["budget_id"] . "';");
+		if (count($vals) >= 1) {
+			//If the category has values but we're supposed to delete them, delete. Otherwise error out
+			if (isset($_POST["deleteDep"])) {
+				$wpdb->delete($val_table, array('budget_id' => $_POST["budget_id"]));
+				$wpdb->delete($cat_table, array('budget_id' => $_POST["budget_id"]));
+			} else {
+				echo "Error: This budget category has values. Please either delete these values manually or confirm you would like them all to be deleted";
+			}
+		} else {
+			//If there are no values, just delete
+			$wpdb->delete($cat_table, array('budget_id' => $_POST["budget_id"]));
+		}
 	}
 }
 
@@ -180,8 +205,7 @@ function sa_process_val() {
 			echo "ERROR: Missing required name, amount or date";
 			return;
 		} 
-		$val_table = $wpdb->prefix . "sa_watch_budget_value"; //TODO: Refactor this with sa_watch.php
-		$results = $wpdb->get_results( "SELECT budget_id FROM " . $val_table . " WHERE budget_id='" . $_POST["cat"] . 
+		$results = $wpdb->get_results( "SELECT budget_id FROM $val_table WHERE budget_id='" . $_POST["cat"] . 
 										"' AND date='" . $_POST["date"] ."';", OBJECT);
 		//If this budget does not exist, add it. If they do, output an error
 		if (count($results) < 1) {
@@ -221,6 +245,7 @@ function sa_process_form() {
 		default:
 			//This should never happen
 			echo "ERROR: Illegal submission type";
+			$_POST["type"] = "rep";
 	}
 	return $_POST["type"];
 }
@@ -263,6 +288,7 @@ function sa_data_entry() {
 					<input type="radio" name="position" value="pres" checked>President<br>
 					<input type="radio" name="position" value="vp">Vice President<br>
 					<input type="radio" name="position" value="senator">Senator<br>
+					<input type="radio" name="position" value="classpres">Class President<br>
 					Bio:<br>
 					<textarea type="text" name="bio"></textarea><br>
 					Picture URL:<br>
@@ -274,13 +300,14 @@ function sa_data_entry() {
 					<h3>Representative Removal</h3>
 					<?php
 					//Load all representatives
-					$results = $wpdb->get_results( "SELECT rep_id, firstname, lastname FROM " . $rep_table  .";", OBJECT);
+					$results = $wpdb->get_results( "SELECT rep_id, firstname, lastname FROM {$rep_table};", OBJECT);
 					echo '<select name="rep_id">';
 					foreach ($results as $rep) {
 						echo "<option value=" . $rep->rep_id . "> " . $rep->firstname . " " . $rep->lastname . "</option>";
 					}
 					echo "</select><br>";
 					?>
+					<input type="checkbox" name="deleteDep" value=1>Delete all votes associated with this representative<br>
 					<input type="submit" name="remove" value="Submit">
 				</div>
 			</form>
@@ -297,6 +324,7 @@ function sa_data_entry() {
 					<textarea type="text" name="description"></textarea><br>
 					Result:<br>
 					<input type="radio" name="result" value="pass" checked>Passed<br>
+					<input type="radio" name="result" value="withdrawn">Withdrawn<br>
 					<input type="radio" name="result" value="fail">Failed<br>
 					<input type="radio" name="result" value="tabled">Tabled<br>
 					<input type="submit" name="add" value="Submit">
@@ -306,13 +334,14 @@ function sa_data_entry() {
 					<h3>Bill Removal</h3>
 					<?php
 					//Load all bills
-					$results = $wpdb->get_results( "SELECT bill_id, name, vote_date FROM " . $bill_table  .";", OBJECT);
+					$results = $wpdb->get_results( "SELECT bill_id, name, vote_date FROM {$bill_table};", OBJECT);
 					echo '<select name="bill_id">';
 					foreach ($results as $bill) {
 						echo "<option value=" . $bill->bill_id . "> " . $bill->name . " " . "</option>";
 					}
 					echo "</select><br>";
 					?>
+					<input type="checkbox" name="deleteDep" value=1>Delete all votes associated with this bill<br>
 					<input type="submit" name="remove" value="Submit">
 				</div>
 			</form>
@@ -323,7 +352,7 @@ function sa_data_entry() {
 					<h3>Votes Input</h3>
 					Representative:<br>
 					<?php 
-					$results = $wpdb->get_results( "SELECT rep_id, firstname, lastname FROM " . $rep_table . ";", OBJECT);
+					$results = $wpdb->get_results( "SELECT rep_id, firstname, lastname FROM {$rep_table};", OBJECT);
 					echo '<select name="rep">';
 					foreach ($results as $rep) {
 						echo "<option value=" . $rep->rep_id . "> " . $rep->firstname . " " . $rep->lastname . "</option>";
@@ -332,7 +361,7 @@ function sa_data_entry() {
 					?>
 					Bill Name:<br>
 					<?php 
-					$results = $wpdb->get_results( "SELECT bill_id, name FROM " . $bill_table . ";", OBJECT);
+					$results = $wpdb->get_results( "SELECT bill_id, name FROM {$bill_table};", OBJECT);
 					echo '<select name="bill">';
 					foreach ($results as $bill) {
 						echo "<option value=" . $bill->bill_id . "> " . $bill->name . "</option>";
@@ -340,7 +369,8 @@ function sa_data_entry() {
 					echo "</select><br>";
 					?>
 					Result:<br>
-					<input type="radio" name="vote" value="aye" checked>Aye<br>
+					<input type="radio" name="vote" value="sponsor" checked>Sponsored (Aye)<br>
+					<input type="radio" name="vote" value="aye">Aye<br>
 					<input type="radio" name="vote" value="nay">Nay<br>
 					<input type="radio" name="vote" value="abstain">Abstain<br>
 					<input type="submit" name="add" value="Submit">
@@ -350,7 +380,7 @@ function sa_data_entry() {
 					<h3>Vote Removal</h3>
 					<?php
 					//Load all votes
-					$results = $wpdb->get_results( "SELECT vote_id, rep_id, bill_id FROM " . $vote_table . ";", OBJECT);
+					$results = $wpdb->get_results( "SELECT vote_id, rep_id, bill_id FROM {$vote_table};", OBJECT);
 					echo '<select name="vote_id">';
 					foreach ($results as $vote) {
 						echo "<option value=" . $vote->vote_id . "> " . $vote->rep_id . " " . $vote->bill_id . "</option>";
@@ -376,13 +406,14 @@ function sa_data_entry() {
 					<h3>Category Removal</h3>
 					<?php
 					//Load all categories
-					$results = $wpdb->get_results( "SELECT budget_id, name FROM " . $cat_table . ";", OBJECT);
+					$results = $wpdb->get_results( "SELECT budget_id, name FROM {$cat_table};", OBJECT);
 					echo '<select name="budget_id">';
 					foreach ($results as $cat) {
 						echo "<option value=" . $cat->budget_id . "> " . $cat->name . " " . "</option>";
 					}
 					echo "</select><br>";
 					?>
+					<input type="checkbox" name="deleteDep" value=1>Delete all values associated with this budget category<br>
 					<input type="submit" name="remove" value="Submit">
 				</div>
 			</form>
@@ -393,7 +424,7 @@ function sa_data_entry() {
 					<h3>Budget Value Input</h3>
 					Budget Category Name:<br>
 					<?php 
-					$results = $wpdb->get_results( "SELECT budget_id, name FROM " . $cat_table . ";", OBJECT);
+					$results = $wpdb->get_results( "SELECT budget_id, name FROM {$cat_table};", OBJECT);
 					echo '<select name="cat">';
 					foreach ($results as $cat) {
 						echo "<option value=" . $cat->budget_id . "> " . $cat->name . "</option>";
@@ -411,7 +442,7 @@ function sa_data_entry() {
 					<h3>Budget Value Removal</h3>
 					<?php
 					//Load all categories
-					$results = $wpdb->get_results( "SELECT budget_value_id, budget_id, date FROM " . $val_table . ";", OBJECT);
+					$results = $wpdb->get_results( "SELECT budget_value_id, budget_id, date FROM {$val_table};", OBJECT);
 					echo '<select name="val_id">';
 					foreach ($results as $cat) {
 						echo "<option value=" . $cat->budget_value_id . "> " . $cat->budget_id . " " . $cat->date . "</option>";
