@@ -62,7 +62,7 @@ function sa_watch_senate_shortcode () {
 function sa_watch_output_senator($senator) {
 	global $wpdb, $rep_table, $bill_table, $vote_table;
 
-	echo "<tr onclick='showVotes(rep_" . $senator->rep_id . ")'><td><img src=" . $senator->picture_url . "></td><td><p><b>";
+	echo "<tr onclick='showVotes(rep_" . $senator->rep_id . ")' class='bio'><td><img src=" . $senator->picture_url . "></td><td><p><b>";
 	if ($senator->position == 'pres') {
 		echo "President: ";
 	} else if ($senator->position == 'vp') {

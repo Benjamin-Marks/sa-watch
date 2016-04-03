@@ -68,6 +68,11 @@
 		
 	padding: 10px;
 }
+
+.sawatch-senate-table table .bio {
+	cursor: pointer;
+}
+
 .sawatch-senate-table table td:last-child {
 	width:180px;
 }
