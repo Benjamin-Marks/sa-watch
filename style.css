@@ -71,3 +71,7 @@
 .sawatch-senate-table table td:last-child {
 	width:180px;
 }
+
+.sawatch-senate-table .votes {
+	display:none;
+}

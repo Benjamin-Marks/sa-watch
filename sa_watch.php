@@ -14,8 +14,8 @@
 $sa_watch_db_version = "1.0";
 
 register_activation_hook(__FILE__, 'sa_watch_install');
-register_deactivation_hook(__FILE__, 'sa_watch_uninstall'); //FOR TESTING PURPOSES ONLY
-//TODO: add delete data option upon Uninstalling
+//register_deactivation_hook(__FILE__, 'sa_watch_uninstall'); //FOR TESTING PURPOSES ONLY
+//TODO: add delete data option upon uninstalling
 
 //Include our admin page scripts
 require_once(plugin_dir_path(__FILE__) . 'admin/admin.php');
@@ -23,6 +23,7 @@ require_once(plugin_dir_path(__FILE__) . 'admin/admin.php');
 //Include our views scripts and shortcodes
 require_once(plugin_dir_path(__FILE__) . 'views/budget.php');
 require_once(plugin_dir_path(__FILE__) . 'views/senate.php');
+require_once(plugin_dir_path(__FILE__) . 'views/bill.php');
 
 if (!function_exists('add_action')) {
 	echo "Do not call this plugin directly";
@@ -31,7 +32,6 @@ if (!function_exists('add_action')) {
 
 //Table names
 global $wpdb;
-$prefix = $wpdb->prefix . "sa_watch_";
 $GLOBALS['rep_table'] = $rep_table = $wpdb->prefix . "sa_watch_representative";
 $GLOBALS['bill_table'] = $bill_table = $wpdb->prefix . "sa_watch_bill";
 $GLOBALS['vote_table'] = $vote_table = $wpdb->prefix . "sa_watch_vote_id";

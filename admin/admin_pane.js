@@ -1,6 +1,4 @@
-//A Script
-
-//Updates the admin pane tab
+//Updates the currently shown admin pane tab
 function updatePane(tab) {
 	document.getElementById("rep-data").setAttribute("style", "display:none");
 	document.getElementById("bill-data").setAttribute("style", "display:none");

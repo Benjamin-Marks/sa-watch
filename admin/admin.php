@@ -48,9 +48,9 @@ function sa_process_rep() {
 					echo "Error: A vice president is already in the database: " . $vp[0]->firstname . " " . $vp[0]->lastname;
 					return;
 				}
-			} else if (strcmp($_POST["postition"], 'classpres') == 0) {
-				$classpres = $wpdb->get_results("SELECT firstname, lastname FROM $rep_table WHERE position='vp' AND classyear=" . $_POST["classyear"] .";", OBJECT);
-				if (count($vp) != 0) {
+			} else if (strcmp($_POST["position"], 'classpres') == 0) {
+				$classpres = $wpdb->get_results("SELECT firstname, lastname FROM $rep_table WHERE position='classpres' AND classyear=" . $_POST["classyear"] .";", OBJECT);
+				if (count($classpres) != 0) {
 					echo "Error: A class of " . $_POST["classyear"] . " president is already in the database: " . $classpres[0]->firstname . " " . $classpres[0]->lastname;
 					return;
 				}

@@ -7,19 +7,17 @@ add_shortcode('sa_watch_graph_content', 'sa_watch_graph_shortcode');
 add_action('wp_sa_watch_ajax_budget_graph', 'sa_watch_budget_callback');
 
 function sa_watch_budget_callback() {
-  global $wpdb;
-  $cat_table = $wpdb->prefix . "sa_watch_budget_item"; //TODO: Refactor
-  $val_table = $wpdb->prefix . "sa_watch_budget_value"; //TODO: Refactor
+  global $wpdb, $cat_table, $val_table;
   //Grab Budget entries out of the database, place in array
   //Get full list of dates
-  $dates = $wpdb->get_results("SELECT DISTINCT date FROM " . $val_table . " ORDER BY date;", OBJECT);
+  $dates = $wpdb->get_results("SELECT DISTINCT date FROM $val_table ORDER BY date;", OBJECT);
 
   //Get full list of names and output it
-  $names = $wpdb->get_results( "SELECT budget_id, name FROM " . $cat_table . ";", OBJECT);
+  $names = $wpdb->get_results( "SELECT budget_id, name FROM {$cat_table};", OBJECT);
   echo "['Date'";
   //Verify each category has at least one data point, otherwise chart won't load
   for ($i = 0; $i < count($names); $i++) {
-    $data = $wpdb->get_results("SELECT amount FROM " . $val_table . " WHERE budget_id = " . $names[$i]->budget_id . ";", OBJECT);
+    $data = $wpdb->get_results("SELECT amount FROM $val_table WHERE budget_id = " . $names[$i]->budget_id . ";", OBJECT);
     if (count($data) != 0) {
       echo ", '" . $names[$i]->name . "' ";
     } else {
@@ -34,14 +32,14 @@ function sa_watch_budget_callback() {
   $date_size = count($dates);
   $name_size = count($names);
   for ($i = 0; $i < $date_size; $i++) {
-    $data = $wpdb->get_results("SELECT budget_id, amount FROM " . $val_table . " WHERE date = '" . $dates[$i]->date . "' AND budget_id = " . $names[0]->budget_id . ";", OBJECT);
+    $data = $wpdb->get_results("SELECT budget_id, amount FROM $val_table WHERE date = '" . $dates[$i]->date . "' AND budget_id = " . $names[0]->budget_id . ";", OBJECT);
     if (count($data) == 0) {
       echo ", ['" . strval($dates[$i]->date) . "', null";
     } else {
       echo ", ['" . strval($dates[$i]->date) . "', " . strval($data[0]->amount);
     }
     for ($j = 1; $j < $name_size; $j++) {
-      $data = $wpdb->get_results("SELECT budget_id, amount, date FROM " . $val_table . " WHERE date = '" . $dates[$i]->date . "' AND budget_id = " . $names[$j]->budget_id . ";", OBJECT);
+      $data = $wpdb->get_results("SELECT budget_id, amount, date FROM $val_table WHERE date = '" . $dates[$i]->date . "' AND budget_id = " . $names[$j]->budget_id . ";", OBJECT);
       if (count($data) < 1) { //Assuming it's 0, otherwise weird and invalid
         echo ", null";
       } else {
