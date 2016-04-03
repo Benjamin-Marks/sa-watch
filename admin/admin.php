@@ -130,6 +130,7 @@ function sa_process_bill() {
 		}
 	} 
 }
+
 function sa_process_vote() {
 	global $wpdb, $vote_table;
 	if (!empty($_POST["add"])) {
@@ -383,7 +384,10 @@ function sa_data_entry() {
 					$results = $wpdb->get_results( "SELECT vote_id, rep_id, bill_id FROM {$vote_table};", OBJECT);
 					echo '<select name="vote_id">';
 					foreach ($results as $vote) {
-						echo "<option value=" . $vote->vote_id . "> " . $vote->rep_id . " " . $vote->bill_id . "</option>";
+						//TODO: refactor, use joins for god's sake
+						$rep = $wpdb->get_results("SELECT firstname, lastname FROM $rep_table WHERE rep_id=" . $vote->rep_id . ";", OBJECT);
+						$bill = $wpdb->get_results("SELECT name FROM $bill_table WHERE bill_id=" . $vote->bill_id . ";", OBJECT);
+						echo "<option value=" . $vote->vote_id . "> " . $rep[0]->firstname . " " . $rep[0]->lastname . ", " . $bill[0]->name . "</option>";
 					}
 					echo "</select><br>";
 					?>
@@ -442,10 +446,12 @@ function sa_data_entry() {
 					<h3>Budget Value Removal</h3>
 					<?php
 					//Load all categories
-					$results = $wpdb->get_results( "SELECT budget_value_id, budget_id, date FROM {$val_table};", OBJECT);
+					$results = $wpdb->get_results("SELECT budget_value_id, budget_id, date FROM {$val_table};", OBJECT);
 					echo '<select name="val_id">';
 					foreach ($results as $cat) {
-						echo "<option value=" . $cat->budget_value_id . "> " . $cat->budget_id . " " . $cat->date . "</option>";
+						//TODO: lrn 2 sql pls
+						$category = $wpdb->get_results("SELECT name FROM $cat_table WHERE budget_id=" . $cat->budget_id . ";", OBJECT);
+						echo "<option value=" . $cat->budget_value_id . "> " . $category[0]->name . ", " . $cat->date . "</option>";
 					}
 					echo "</select><br>";
 					?>
